@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Resizer (Automatic Indian Passport)</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #container {
+            max-width: 80%;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #dropZone {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        #inputImage {
+            display: none;
+        }
+
+        #outputCanvas {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            max-width: 100%;
+        }
+
+        button {
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        input {
+            width: 80px;
+            margin: 5px;
+            text-align: center;
+        }
+
+        @media only screen and (max-width: 600px) {
+            input {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>Image Resizer (Automatic Indian Passport)</h1>
+        <div id="dropZone" onclick="document.getElementById('inputImage').click()">
+            <p>Drop image here or click to select</p>
+        </div>
+        <input type="file" id="inputImage" accept="image/*" onchange="handleImage(event)">
+        <br>
+        <label for="width">Width:</label>
+        <input type="number" id="width" value="132" placeholder="Width" oninput="updateHeight()">
+        <label for="height">Height:</label>
+        <input type="number" value="170" id="height" placeholder="Height" oninput="updateWidth()">
+        <label for="aspectRatio">Maintain Aspect Ratio:</label>
+        <input type="checkbox"  id="aspectRatio" onchange="updateAspectRatio()">
+        <br>
+        <canvas id="outputCanvas" width="132" height="170" style="border:1px solid #ddd;"></canvas>
+        <br>
+        <button onclick="downloadResizedImage()">Download Resized Image</button>
+    </div>
+
+    <script>
+        let img;
+        let resizedDataURL;
+
+        function handleImage(e) {
+            const input = e.target;
+            const reader = new FileReader();
+
+            reader.onload = function () {
+                img = new Image();
+                img.src = reader.result;
+
+                img.onload = function () {
+                    updateCanvas();
+                    checkIndianPassportSize();
+                };
+            };
+
+            reader.readAsDataURL(input.files[0]);
+        }
+
+        function updateWidth() {
+            const widthInput = document.getElementById('width');
+            const heightInput = document.getElementById('height');
+            const maintainAspectRatio = document.getElementById('aspectRatio').checked;
+
+            if (maintainAspectRatio) {
+                const aspectRatio = img.width / img.height;
+                heightInput.value = (widthInput.value / aspectRatio).toFixed(2);
+            }
+
+            updateCanvas();
+            checkIndianPassportSize();
+        }
+
+        function updateHeight() {
+            const widthInput = document.getElementById('width');
+            const heightInput = document.getElementById('height');
+            const maintainAspectRatio = document.getElementById('aspectRatio').checked;
+
+            if (maintainAspectRatio) {
+                const aspectRatio = img.width / img.height;
+                widthInput.value = (heightInput.value * aspectRatio).toFixed(2);
+            }
+
+            updateCanvas();
+            checkIndianPassportSize();
+        }
+
+        function updateAspectRatio() {
+            const maintainAspectRatio = document.getElementById('aspectRatio').checked;
+
+            if (maintainAspectRatio) {
+                const widthInput = document.getElementById('width');
+                const heightInput = document.getElementById('height');
+                const aspectRatio = img.width / img.height;
+
+                if (widthInput.value !== '') {
+                    heightInput.value = (widthInput.value / aspectRatio).toFixed(2);
+                } else if (heightInput.value !== '') {
+                    widthInput.value = (heightInput.value * aspectRatio).toFixed(2);
+                }
+            }
+
+            updateCanvas();
+            checkIndianPassportSize();
+        }
+
+        function updateCanvas() {
+            const canvas = document.getElementById('outputCanvas');
+            const ctx = canvas.getContext('2d');
+
+            const desiredWidth = document.getElementById('width').value || 170;
+            const desiredHeight = document.getElementById('height').value || (desiredWidth / img.width) * img.height;
+
+            // If aspect ratio checkbox is checked, override width and height
+            const maintainAspectRatio = document.getElementById('aspectRatio').checked;
+            if (maintainAspectRatio) {
+                const aspectRatio = img.width / img.height;
+                canvas.width = desiredWidth;
+                canvas.height = desiredWidth / aspectRatio;
+            } else {
+                canvas.width = desiredWidth;
+                canvas.height = desiredHeight;
+            }
+
+            // Draw the image on the canvas with the new dimensions
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Save the resized image as a data URL
+            resizedDataURL = canvas.toDataURL('image/jpeg', 1.0); // Specify the desired image quality
+        }
+
+        function checkIndianPassportSize() {
+            const passportWidth = 3.5; // Standard width in cm for Indian passport photo
+            const passportHeight = 4.5; // Standard height in cm for Indian passport photo
+
+            const widthInput = document.getElementById('width').value;
+            const heightInput = document.getElementById('height').value;
+
+            if (
+                Math.abs(widthInput - passportWidth) < 0.1 &&
+                Math.abs(heightInput - passportHeight) < 0.1
+            ) {
+                alert('This image size matches the Indian passport photo dimensions.');
+            }
+        }
+
+        function downloadResizedImage() {
+            if (resizedDataURL) {
+                const fileName = getOutputFileName();
+                const link = document.createElement('a');
+                link.href = resizedDataURL;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else {
+                alert('Please select an image and resize it before downloading.');
+            }
+        }
+
+        function getOutputFileName() {
+            const originalFileName = document.getElementById('inputImage').files[0].name;
+            const width = document.getElementById('width').value || 'auto';
+            const height = document.getElementById('height').value || 'auto';
+            const aspectRatio = document.getElementById('aspectRatio').checked ? 'AR' : 'noAR';
+
+            const fileExtension = originalFileName.split('.').pop();
+            const fileNameWithoutExtension = originalFileName.replace(`.${fileExtension}`, '');
+
+            return `${fileNameWithoutExtension}_${width}x${height}_${aspectRatio}.${fileExtension}`;
+        }
+
+        // Add drag and drop functionality
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', handleDragOver);
+        dropZone.addEventListener('drop', handleDrop);
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            dropZone.style.borderColor = '#4caf50';
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            dropZone.style.borderColor = '#ddd';
+            const files = event.dataTransfer.files;
+            document.getElementById('inputImage').files = files;
+            handleImage({ target: document.getElementById('inputImage') });
+        }
+    </script>
+</body>
+</html>
